@@ -20,13 +20,12 @@ app.config.from_object(Config)
 
 db.init_app(app)
 Config.init_app(app)  # Ensure directories exist
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+socketio = SocketIO(app, cors_allowed_origins="*")
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # Global Sniffer State Accessor
 # Instantiate sniffer service so endpoints and templates can reference it
-from services.sniffer import LiveSniffer
 sniffer_service = LiveSniffer(socketio, app)
 
 @login_manager.user_loader
@@ -56,7 +55,7 @@ def register():
             db.session.commit()
             flash('Account provisioning successful! Securely sign in now.', 'success')
             return redirect(url_for('login'))
-        except:
+        except Exception:
             db.session.rollback()
             flash('Error: Username or Email identifier already exists.', 'danger')
     return render_template('register.html')
@@ -170,4 +169,10 @@ def handle_connect():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+    
+    print("\n" + "="*50)
+    print("SERVER STARTED SUCCESSFULLY!")
+    print("CLICK HERE TO OPEN: http://127.0.0.1:5000")
+    print("="*50 + "\n")
+    
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)

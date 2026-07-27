@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Sniffer Dashboard</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+    <!-- Socket.IO -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <!-- Flash Messages (Toasts) -->
+    <div id="toast-container" class="toast-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="toast toast-{{ category }}">
+                        <div class="toast-icon">
+                            {% if category == 'success' %}<i class="fas fa-check-circle"></i>{% endif %}
+                            {% if category == 'danger' %}<i class="fas fa-exclamation-triangle"></i>{% endif %}
+                            {% if category == 'info' %}<i class="fas fa-info-circle"></i>{% endif %}
+                        </div>
+                        <div class="toast-message">{{ message }}</div>
+                        <button class="toast-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Application Container -->
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        {% if current_user.is_authenticated %}
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>NetSniff Pro</span>
+                </div>
+            </div>
+            
+            <div class="sidebar-menu-wrapper">
+                <div class="menu-label">OPERATIONS</div>
+                <ul class="sidebar-menu">
+                    <li class="active"><a href="{{ url_for('dashboard') }}"><i class="fas fa-chart-pie"></i> Dashboard</a></li>
+                    <li><a href="#packet-table" class="nav-scroll"><i class="fas fa-stream"></i> Packet Stream</a></li>
+                    <li><a href="#alerts-feed" class="nav-scroll"><i class="fas fa-shield-virus"></i> Threat Feed</a></li>
+                </ul>
+
+                <div class="menu-label" style="margin-top: 1rem;">TRAFFIC FILTERS</div>
+                <ul class="sidebar-menu filter-menu">
+                    <li class="active" data-filter="all"><a href="javascript:void(0)"><i class="fas fa-layer-group"></i> All Traffic</a></li>
+                    <li data-filter="TCP"><a href="javascript:void(0)"><i class="fas fa-circle" style="color: #60a5fa; font-size: 0.6rem;"></i> TCP Packets</a></li>
+                    <li data-filter="UDP"><a href="javascript:void(0)"><i class="fas fa-circle" style="color: #34d399; font-size: 0.6rem;"></i> UDP Packets</a></li>
+                </ul>
+
+                <!-- Engine Status Widget -->
+                <div class="sidebar-status-card glass-panel">
+                    <div class="status-header">
+                        <span class="status-dot red"></span>
+                        <span class="status-title">ENGINE STANDBY</span>
+                    </div>
+                    <div class="status-details">
+                        <div><span>Driver:</span> <strong>Npcap Core</strong></div>
+                        <div><span>Mode:</span> <strong id="status-mode">Idle</strong></div>
+                        <div><span>DPI Engine:</span> <strong>Active</strong></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="avatar"><i class="fas fa-user"></i></div>
+                    <div class="details">
+                        <span class="name">{{ current_user.username }}</span>
+                        <span class="role">Admin</span>
+                    </div>
+                </div>
+                <a href="{{ url_for('logout') }}" class="btn-logout" title="Sign Out">
+                    <i class="fas fa-sign-out-alt"></i>
+                </a>
+            </div>
+        </nav>
+        {% endif %}
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Custom JS -->
+    {% if current_user.is_authenticated %}
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% endif %}
+</body>
+</html>

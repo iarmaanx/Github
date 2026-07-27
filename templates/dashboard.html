@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="title-area">
+        <h1>Command Center</h1>
+        <p>Real-time network traffic analysis and threat detection</p>
+    </div>
+    <div class="controls-area glass-panel">
+        <div class="interface-selector">
+            <label for="iface-select"><i class="fas fa-network-wired"></i> Interface</label>
+            <select id="iface-select" class="form-control">
+                {% for iface in interfaces %}
+                    <option value="{{ iface }}" {% if active_iface == iface %}selected{% endif %}>{{ iface }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="action-buttons">
+            <button id="btn-start" class="btn btn-success"><i class="fas fa-play"></i> Start Capture</button>
+            <button id="btn-stop" class="btn btn-danger" disabled><i class="fas fa-stop"></i> Stop Capture</button>
+            <button id="btn-clear" class="btn btn-outline"><i class="fas fa-trash"></i> Clear Data</button>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Overview Grid -->
+<div class="stats-grid">
+    <div class="stat-card glass-panel pulse-glow">
+        <div class="stat-icon blue"><i class="fas fa-exchange-alt"></i></div>
+        <div class="stat-content">
+            <h3>Total Packets</h3>
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-trend"><i class="fas fa-arrow-up"></i> Live</div>
+        </div>
+    </div>
+    
+    <div class="stat-card glass-panel">
+        <div class="stat-icon purple"><i class="fas fa-network-wired"></i></div>
+        <div class="stat-content">
+            <h3>TCP / UDP</h3>
+            <div class="stat-value"><span id="stat-tcp">0</span> / <span id="stat-udp">0</span></div>
+            <div class="stat-trend">Protocol Split</div>
+        </div>
+    </div>
+    
+    <div class="stat-card glass-panel">
+        <div class="stat-icon green"><i class="fas fa-globe"></i></div>
+        <div class="stat-content">
+            <h3>HTTP / HTTPS</h3>
+            <div class="stat-value"><span id="stat-http">0</span> / <span id="stat-https">0</span></div>
+            <div class="stat-trend">Web Traffic</div>
+        </div>
+    </div>
+    
+    <div class="stat-card glass-panel">
+        <div class="stat-icon orange"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="stat-content">
+            <h3>Bandwidth</h3>
+            <div class="stat-value" id="stat-bandwidth">0 B</div>
+            <div class="stat-trend">Captured Volume</div>
+        </div>
+    </div>
+
+    <div class="stat-card glass-panel">
+        <div class="stat-icon red"><i class="fas fa-microchip"></i></div>
+        <div class="stat-content">
+            <h3>CPU Load</h3>
+            <div class="stat-value" id="stat-cpu">0%</div>
+            <div class="stat-trend">System Metric</div>
+        </div>
+    </div>
+
+    <div class="stat-card glass-panel">
+        <div class="stat-icon cyan"><i class="fas fa-memory"></i></div>
+        <div class="stat-content">
+            <h3>RAM Usage</h3>
+            <div class="stat-value" id="stat-ram">0%</div>
+            <div class="stat-trend">System Metric</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Dashboard Layout -->
+<div class="dashboard-layout">
+    <!-- Left Column: Packet Table -->
+    <div class="column-main">
+        <div class="panel glass-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-stream"></i> Live Packet Stream</h2>
+                <div class="panel-actions">
+                    <span class="live-indicator"><span class="dot"></span> Live</span>
+                    <button id="btn-export-csv" class="btn-icon" title="Export CSV"><i class="fas fa-file-csv"></i></button>
+                    <button id="btn-export-json" class="btn-icon" title="Export JSON"><i class="fas fa-file-code"></i></button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="packet-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Protocol</th>
+                            <th>Source</th>
+                            <th>Destination</th>
+                            <th>Length</th>
+                            <th>Info</th>
+                        </tr>
+                    </thead>
+                    <tbody id="packet-body">
+                        <!-- Populated via JS -->
+                        <tr class="empty-state">
+                            <td colspan="6">
+                                <div class="empty-content">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>No packets captured yet. Select an interface and click Start Capture.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: 2x2 Grid for Charts & Widgets -->
+    <div class="column-side side-grid">
+        <!-- Live Traffic Timeline Chart -->
+        <div class="panel glass-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-chart-line"></i> Traffic Rate (PPS)</h2>
+            </div>
+            <div class="chart-container">
+                <canvas id="trafficChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Protocol Distribution Chart -->
+        <div class="panel glass-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-chart-pie"></i> Protocols</h2>
+            </div>
+            <div class="chart-container">
+                <canvas id="protocolChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Top IP Talkers -->
+        <div class="panel glass-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-users-cog"></i> Top Talkers</h2>
+            </div>
+            <div class="top-ips-container" id="top-ips-list">
+                <p class="text-muted" style="text-align: center; font-size: 0.85rem;">Waiting for traffic...</p>
+            </div>
+        </div>
+        
+        <!-- Threat Alerts Feed -->
+        <div class="panel glass-panel alerts-panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-shield-virus"></i> Threat Feed</h2>
+            </div>
+            <div class="alerts-feed" id="alerts-feed">
+                <!-- Populated via JS -->
+                <div class="empty-alert">
+                    <i class="fas fa-check-circle"></i>
+                    <p>System secure.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Section: Advanced Analytics & Security Controls -->
+<div class="bottom-dashboard-grid" style="margin-top: 0.75rem; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+    <!-- Live Speed & Throughput -->
+    <div class="panel glass-panel">
+        <div class="panel-header">
+            <h2><i class="fas fa-tachometer-alt"></i> Speed & Throughput</h2>
+        </div>
+        <div class="speed-widget" style="padding: 0.75rem; display: flex; justify-content: space-around; align-items: center; height: 100%;">
+            <div class="speed-box" style="text-align: center;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fas fa-download" style="color: var(--success);"></i> Download Speed</span>
+                <h3 id="speed-rx" style="font-size: 1.25rem; font-weight: 700; color: var(--success); margin-top: 0.2rem;">0 KB/s</h3>
+            </div>
+            <div class="speed-box" style="text-align: center;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fas fa-upload" style="color: var(--info);"></i> Upload Speed</span>
+                <h3 id="speed-tx" style="font-size: 1.25rem; font-weight: 700; color: var(--info); margin-top: 0.2rem;">0 KB/s</h3>
+            </div>
+            <div class="speed-box" style="text-align: center;">
+                <span style="font-size: 0.75rem; color: var(--text-muted);"><i class="fas fa-box"></i> Avg Frame Size</span>
+                <h3 id="speed-avg" style="font-size: 1.25rem; font-weight: 700; color: var(--primary); margin-top: 0.2rem;">0 B</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Target Service & Port Distribution -->
+    <div class="panel glass-panel">
+        <div class="panel-header">
+            <h2><i class="fas fa-network-wired"></i> Target Port Radar</h2>
+        </div>
+        <div class="ports-widget" style="padding: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem; justify-content: center; height: 100%;">
+            <div class="port-bar-item" style="font-size: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.1rem;">
+                    <span>HTTPS (Port 443)</span>
+                    <span id="p-443-val">0</span>
+                </div>
+                <div style="width: 100%; background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; overflow: hidden;">
+                    <div id="p-443-bar" style="width: 0%; background: var(--primary); height: 100%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+            <div class="port-bar-item" style="font-size: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.1rem;">
+                    <span>HTTP (Port 80)</span>
+                    <span id="p-80-val">0</span>
+                </div>
+                <div style="width: 100%; background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; overflow: hidden;">
+                    <div id="p-80-bar" style="width: 0%; background: var(--success); height: 100%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+            <div class="port-bar-item" style="font-size: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.1rem;">
+                    <span>DNS (Port 53)</span>
+                    <span id="p-53-val">0</span>
+                </div>
+                <div style="width: 100%; background: rgba(255,255,255,0.05); height: 6px; border-radius: 3px; overflow: hidden;">
+                    <div id="p-53-bar" style="width: 0%; background: var(--warning); height: 100%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Firewall & Security Shields Console -->
+    <div class="panel glass-panel">
+        <div class="panel-header">
+            <h2><i class="fas fa-shield-alt"></i> Security Shields</h2>
+        </div>
+        <div class="shields-widget" style="padding: 0.75rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.75rem; align-items: center; height: 100%;">
+            <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--success);"><i class="fas fa-check-circle"></i> Promiscuous Mode</div>
+            <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--success);"><i class="fas fa-check-circle"></i> Auto Threat Mitigation</div>
+            <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--success);"><i class="fas fa-check-circle"></i> Deep Packet Inspection</div>
+            <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--success);"><i class="fas fa-check-circle"></i> Payload Decryption</div>
+        </div>
+    </div>
+</div>
+
+<!-- Packet Inspector Modal (Wireshark-Style) -->
+<div id="packetModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-content glass-panel">
+        <div class="modal-header">
+            <h3><i class="fas fa-search-plus"></i> Packet Frame Inspector</h3>
+            <button id="modal-close" class="btn-icon"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="packet-meta-grid">
+                <div><strong>Timestamp:</strong> <span id="m-time">-</span></div>
+                <div><strong>Protocol:</strong> <span id="m-proto">-</span></div>
+                <div><strong>Source:</strong> <span id="m-src">-</span></div>
+                <div><strong>Destination:</strong> <span id="m-dst">-</span></div>
+                <div><strong>Frame Length:</strong> <span id="m-len">-</span></div>
+                <div><strong>TTL:</strong> <span id="m-ttl">-</span></div>
+                <div><strong>TCP Flags:</strong> <span id="m-flags">-</span></div>
+            </div>
+            <div class="packet-summary-box">
+                <strong>Summary Info:</strong>
+                <p id="m-summary">-</p>
+            </div>
+            <div class="payload-inspector">
+                <h4><i class="fas fa-code"></i> Raw Hex & ASCII Payload</h4>
+                <div class="payload-box">
+                    <pre id="m-hex">No raw payload extracted for this frame.</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
