@@ -88,6 +88,9 @@
             <div class="panel-header">
                 <h2><i class="fas fa-stream"></i> Live Packet Stream</h2>
                 <div class="panel-actions">
+                    <label class="sr-only" for="packet-search">Search captured packets</label>
+                    <input id="packet-search" class="form-control packet-search" type="search" placeholder="Filter IP, port, or summary">
+                    <span id="packet-count" class="packet-count" aria-live="polite">0 of 0 packets</span>
                     <span class="live-indicator"><span class="dot"></span> Live</span>
                     <button id="btn-export-csv" class="btn-icon" title="Export CSV"><i class="fas fa-file-csv"></i></button>
                     <button id="btn-export-json" class="btn-icon" title="Export JSON"><i class="fas fa-file-code"></i></button>
@@ -162,7 +165,7 @@
                 <!-- Populated via JS -->
                 <div class="empty-alert">
                     <i class="fas fa-check-circle"></i>
-                    <p>System secure.</p>
+                    <p>No alerts recorded.</p>
                 </div>
             </div>
         </div>
@@ -170,7 +173,7 @@
 </div>
 
 <!-- Bottom Section: Advanced Analytics & Security Controls -->
-<div class="bottom-dashboard-grid" style="margin-top: 0.75rem; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;">
+<div class="bottom-dashboard-grid">
     <!-- Live Speed & Throughput -->
     <div class="panel glass-panel">
         <div class="panel-header">
@@ -228,16 +231,16 @@
         </div>
     </div>
 
-    <!-- Active Firewall & Security Shields Console -->
+    <!-- Capture capabilities -->
     <div class="panel glass-panel">
         <div class="panel-header">
-            <h2><i class="fas fa-shield-alt"></i> Security Shields</h2>
+            <h2><i class="fas fa-clipboard-check"></i> Capture Capabilities</h2>
         </div>
-        <div class="shields-widget" style="padding: 0.75rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.75rem; align-items: center; height: 100%;">
-            <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--success);"><i class="fas fa-check-circle"></i> Promiscuous Mode</div>
-            <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--success);"><i class="fas fa-check-circle"></i> Auto Threat Mitigation</div>
-            <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--success);"><i class="fas fa-check-circle"></i> Deep Packet Inspection</div>
-            <div style="display: flex; align-items: center; gap: 0.4rem; color: var(--success);"><i class="fas fa-check-circle"></i> Payload Decryption</div>
+        <div class="capabilities-list">
+            <div><i class="fas fa-check-circle"></i> Interface-based packet capture</div>
+            <div><i class="fas fa-check-circle"></i> IP, TCP, UDP, and ICMP parsing</div>
+            <div><i class="fas fa-check-circle"></i> Port-scan and sensitive-port alerts</div>
+            <div><i class="fas fa-check-circle"></i> Raw payload preview when available</div>
         </div>
     </div>
 </div>

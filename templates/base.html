@@ -57,8 +57,9 @@
                 <div class="menu-label" style="margin-top: 1rem;">TRAFFIC FILTERS</div>
                 <ul class="sidebar-menu filter-menu">
                     <li class="active" data-filter="all"><a href="javascript:void(0)"><i class="fas fa-layer-group"></i> All Traffic</a></li>
-                    <li data-filter="TCP"><a href="javascript:void(0)"><i class="fas fa-circle" style="color: #60a5fa; font-size: 0.6rem;"></i> TCP Packets</a></li>
-                    <li data-filter="UDP"><a href="javascript:void(0)"><i class="fas fa-circle" style="color: #34d399; font-size: 0.6rem;"></i> UDP Packets</a></li>
+                    <li data-filter="TCP"><a href="javascript:void(0)"><i class="fas fa-circle" style="color: #28667b; font-size: 0.6rem;"></i> TCP Packets</a></li>
+                    <li data-filter="UDP"><a href="javascript:void(0)"><i class="fas fa-circle" style="color: #257548; font-size: 0.6rem;"></i> UDP Packets</a></li>
+                    <li data-filter="ICMP"><a href="javascript:void(0)"><i class="fas fa-circle" style="color: #8c5a14; font-size: 0.6rem;"></i> ICMP Packets</a></li>
                 </ul>
 
                 <!-- Engine Status Widget -->
@@ -68,9 +69,9 @@
                         <span class="status-title">ENGINE STANDBY</span>
                     </div>
                     <div class="status-details">
-                        <div><span>Driver:</span> <strong>Npcap Core</strong></div>
+                        <div><span>Capture:</span> <strong>Scapy</strong></div>
                         <div><span>Mode:</span> <strong id="status-mode">Idle</strong></div>
-                        <div><span>DPI Engine:</span> <strong>Active</strong></div>
+                        <div><span>Parsing:</span> <strong>IP / TCP / UDP / ICMP</strong></div>
                     </div>
                 </div>
             </div>

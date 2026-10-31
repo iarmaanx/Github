@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Socket.IO Setup ---
     const socket = io();
     let isSniffing = false;
+    let currentFilter = 'all';
 
     // --- DOM Elements ---
     const btnStart = document.getElementById('btn-start');
@@ -14,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const liveIndicator = document.querySelector('.live-indicator');
     const packetBody = document.getElementById('packet-body');
     const alertsFeed = document.getElementById('alerts-feed');
+    const packetSearch = document.getElementById('packet-search');
+    const packetCount = document.getElementById('packet-count');
 
     // Stats Elements
     const statTotal = document.getElementById('stat-total');
@@ -36,12 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     datasets: [{
                         data: [0, 0, 0, 0],
                         backgroundColor: [
-                            'rgba(59, 130, 246, 0.8)',
-                            'rgba(16, 185, 129, 0.8)',
-                            'rgba(245, 158, 11, 0.8)',
-                            'rgba(100, 116, 139, 0.8)'
+                            '#26749b',
+                            '#25834f',
+                            '#a96713',
+                            '#8a9690'
                         ],
-                        borderColor: 'rgba(30, 41, 59, 1)',
+                        borderColor: '#ffffff',
                         borderWidth: 2
                     }]
                 },
@@ -50,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     maintainAspectRatio: false,
                     cutout: '70%',
                     plugins: {
-                        legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 10, font: { size: 10 } } }
+                        legend: { position: 'bottom', labels: { color: '#64736d', padding: 10, font: { size: 10 } } }
                     }
                 }
             });
@@ -69,8 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     datasets: [{
                         label: 'Packets / sec',
                         data: Array(15).fill(0),
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderColor: '#087f72',
+                        backgroundColor: 'rgba(8, 127, 114, 0.12)',
                         fill: true,
                         tension: 0.4,
                         borderWidth: 2,
@@ -83,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     plugins: { legend: { display: false } },
                     scales: {
                         x: { display: false },
-                        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+                        y: { ticks: { color: '#64736d', font: { size: 10 } }, grid: { color: 'rgba(32, 44, 40, 0.1)' }, beginAtZero: true }
                     }
                 }
             });
@@ -106,6 +109,44 @@ document.addEventListener('DOMContentLoaded', () => {
         if (p === 'ICMP') return 'badge-icmp';
         return 'badge-tcp'; // Default
     };
+
+    const applyPacketFilters = () => {
+        const query = packetSearch?.value.trim().toLowerCase() || '';
+        const rows = packetBody.querySelectorAll('tr[data-packet]');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const packet = JSON.parse(row.dataset.packet || '{}');
+            const protocolMatches = currentFilter === 'all' || packet.protocol === currentFilter;
+            const searchableText = [
+                packet.timestamp, packet.protocol, packet.src_ip, packet.src_port,
+                packet.dst_ip, packet.dst_port, packet.length, packet.summary
+            ].join(' ').toLowerCase();
+            const queryMatches = !query || searchableText.includes(query);
+
+            row.hidden = !(protocolMatches && queryMatches);
+            if (!row.hidden) visibleCount++;
+        });
+
+        let emptyRow = packetBody.querySelector('.filter-empty-state');
+        if (rows.length > 0 && visibleCount === 0) {
+            if (!emptyRow) {
+                emptyRow = document.createElement('tr');
+                emptyRow.className = 'filter-empty-state';
+                const cell = document.createElement('td');
+                cell.colSpan = 6;
+                cell.textContent = 'No packets match the current search and protocol filter.';
+                emptyRow.appendChild(cell);
+                packetBody.appendChild(emptyRow);
+            }
+        } else if (emptyRow) {
+            emptyRow.remove();
+        }
+
+        if (packetCount) packetCount.textContent = `${visibleCount} of ${rows.length} packets`;
+    };
+
+    packetSearch?.addEventListener('input', applyPacketFilters);
 
     // --- Socket Event Handlers ---
 
@@ -235,11 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tr.className = 'new-row';
         tr.dataset.packet = JSON.stringify(packet);
         
-        // Respect current sidebar protocol filter
-        if (currentFilter !== 'all' && packet.protocol !== currentFilter) {
-            tr.style.display = 'none';
-        }
-
         tr.innerHTML = `
             <td>${packet.timestamp.split(' ')[1]}</td>
             <td><span class="badge ${getProtocolBadgeClass(packet.protocol)}">${packet.protocol}</span></td>
@@ -258,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (packetBody.children.length > 100) {
             packetBody.removeChild(packetBody.lastChild);
         }
+        applyPacketFilters();
     });
 
     socket.on('new_alert', (alert) => {
@@ -314,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alertsFeed.innerHTML = `
                     <div class="empty-alert">
                         <i class="fas fa-check-circle"></i>
-                        <p>System secure. No threats detected.</p>
+                        <p>No alerts recorded.</p>
                     </div>
                 `;
             } catch (e) { console.error("Error clearing data", e); }
@@ -340,7 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Sidebar Protocol Filter Logic ---
     const filterMenu = document.querySelector('.filter-menu');
-    let currentFilter = 'all';
 
     if (filterMenu) {
         filterMenu.addEventListener('click', (e) => {
@@ -351,41 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
             li.classList.add('active');
 
             currentFilter = li.dataset.filter || 'all';
-
-            // Filter visible rows in table
-            let visibleCount = 0;
-            const rows = packetBody.querySelectorAll('tr:not(.empty-state)');
-            rows.forEach(row => {
-                try {
-                    const packet = JSON.parse(row.dataset.packet || '{}');
-                    if (currentFilter === 'all' || packet.protocol === currentFilter) {
-                        row.style.display = '';
-                        visibleCount++;
-                    } else {
-                        row.style.display = 'none';
-                    }
-                } catch(err) {}
-            });
-
-            // Show informative message if no packets match current filter
-            const existingEmpty = packetBody.querySelector('.filter-empty-state');
-            if (existingEmpty) existingEmpty.remove();
-
-            if (visibleCount === 0 && rows.length > 0) {
-                const tr = document.createElement('tr');
-                tr.className = 'filter-empty-state';
-                let hint = `No ${currentFilter} packets found in current capture buffer.`;
-                if (currentFilter === 'ICMP') {
-                    hint = `No ICMP packets captured yet. Open Command Prompt and type <strong>ping 8.8.8.8</strong> to generate live ICMP pings!`;
-                }
-                tr.innerHTML = `
-                    <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                        <i class="fas fa-filter" style="font-size: 1.5rem; margin-bottom: 0.5rem; display: block; opacity: 0.5;"></i>
-                        ${hint}
-                    </td>
-                `;
-                packetBody.appendChild(tr);
-            }
+            applyPacketFilters();
         });
     }
 
@@ -464,6 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         fragment.appendChild(tr);
                     });
                     packetBody.appendChild(fragment);
+                    applyPacketFilters();
                 }
             }
         } catch (e) {

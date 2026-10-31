@@ -20,7 +20,7 @@ app.config.from_object(Config)
 
 db.init_app(app)
 Config.init_app(app)  # Ensure directories exist
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
